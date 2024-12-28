@@ -1,135 +1,84 @@
+
 import React, { useState } from "react";
 import { useLoaderData } from "react-router-dom";
 
 const History = () => {
-  const loader = useLoaderData();
-  const { incomes, expenses } = loader;
-
-  // Filter uchun holat
+  const { incomes, expenses } = useLoaderData();
   const [filter, setFilter] = useState("all");
 
-  // Barcha elementlarni birlashtirish
   const allEntries = [...incomes, ...expenses];
 
-  // Filter asosida ma'lumotlarni filtrlash
   const filterEntries = (entries) => {
     const now = new Date();
     return entries.filter((entry) => {
       const entryDate = new Date(entry.date);
       if (filter === "1week") {
-        return now - entryDate <= 7 * 24 * 60 * 60 * 1000; // 1 hafta
+        return now - entryDate <= 7 * 24 * 60 * 60 * 1000;
       } else if (filter === "1month") {
-        return now - entryDate <= 30 * 24 * 60 * 60 * 1000; // 1 oy
+        return now - entryDate <= 30 * 24 * 60 * 60 * 1000;
       } else if (filter === "1year") {
-        return now - entryDate <= 365 * 24 * 60 * 60 * 1000; // 1 yil
+        return now - entryDate <= 365 * 24 * 60 * 60 * 1000;
       }
-      return true; // "all" tanlanganda barcha ma'lumotlarni qaytaradi
+      return true;
     });
   };
 
-  const filteredEntries = filterEntries(allEntries);
+  const filteredEntries = filterEntries(allEntries).sort((a, b) => new Date(b.date) - new Date(a.date));
 
-  // Tartiblash: vaqt bo‘yicha
-  const sortedEntries = filteredEntries.sort((a, b) => {
-    const dateA = new Date(a.date);
-    const dateB = new Date(b.date);
-    return dateB - dateA; // So'nggi sana yuqorida bo'lishi uchun
-  });
-
-  // Sana formatlash
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const months = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December",
-    ];
-
-    const day = date.getDate();
-    const month = months[date.getMonth()];
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-
-    return `${month} ${day}, ${year} ${hours}:${minutes}`;
+    const options = { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" };
+    return new Date(dateString).toLocaleString("en-US", options);
   };
 
-  // Balansni hisoblash
   const totalIncome = incomes.reduce((acc, income) => acc + parseFloat(income.amount), 0);
   const totalExpense = expenses.reduce((acc, expense) => acc + parseFloat(expense.amount), 0);
   const balance = totalIncome - totalExpense;
 
   return (
-    <div className="px-4 py-6">
-      <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">History</h1>
+    <div className="p-6">
+      <h1 className="text-3xl font-bold text-center mb-6">History</h1>
 
-      {/* Filter tugmalari */}
-      <div className="flex justify-center items-center space-x-4 mb-6">
-        <button
-          className={`px-4 py-2 rounded ${filter === "all" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
-          onClick={() => setFilter("all")}
-        >
-          All Time
-        </button>
-        <button
-          className={`px-4 py-2 rounded ${filter === "1week" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
-          onClick={() => setFilter("1week")}
-        >
-          Last 1 Week
-        </button>
-        <button
-          className={`px-4 py-2 rounded ${filter === "1month" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
-          onClick={() => setFilter("1month")}
-        >
-          Last 1 Month
-        </button>
-        <button
-          className={`px-4 py-2 rounded ${filter === "1year" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
-          onClick={() => setFilter("1year")}
-        >
-          Last 1 Year
-        </button>
+      <div className="flex justify-center space-x-4 mb-6">
+        {[
+          { label: "All Time", value: "all" },
+          { label: "Last 1 Week", value: "1week" },
+          { label: "Last 1 Month", value: "1month" },
+          { label: "Last 1 Year", value: "1year" },
+        ].map((btn) => (
+          <button
+            key={btn.value}
+            className={`px-4 py-2 rounded ${filter === btn.value ? "bg-blue-500 text-white" : "bg-gray-200"}`}
+            onClick={() => setFilter(btn.value)}
+          >
+            {btn.label}
+          </button>
+        ))}
       </div>
 
-      {/* Balans, Total Income va Total Expenses */}
-      <div className="flex justify-center items-center mb-6 space-x-6">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-800">Total Income</h2>
-          <p className="text-2xl text-green-500">+${totalIncome.toFixed(2)}</p>
-        </div>
-        <div className="text-center">
-          <h2 className="text-xl font-bold text-gray-800">Total Balance</h2>
-          <p className={`text-2xl font-bold ${balance >= 0 ? "text-green-500" : "text-red-500"}`}>
-            ${balance.toFixed(2)}
-          </p>
-        </div>
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-800">Total Expenses</h2>
-          <p className="text-2xl text-red-500">-${totalExpense.toFixed(2)}</p>
-        </div>
+      <div className="flex justify-center mb-6 space-x-6">
+        {[{ label: "Total Income", value: totalIncome, color: "text-green-500" },
+          { label: "Total Balance", value: balance, color: balance >= 0 ? "text-green-500" : "text-red-500" },
+          { label: "Total Expenses", value: -totalExpense, color: "text-red-500" }].map((stat) => (
+          <div key={stat.label} className="text-center">
+            <h2 className="text-xl font-semibold">{stat.label}</h2>
+            <p className={`text-2xl font-bold ${stat.color}`}>${stat.value.toFixed(2)}</p>
+          </div>
+        ))}
       </div>
 
-      {/* History List */}
-      {sortedEntries.length > 0 ? (
+      {filteredEntries.length > 0 ? (
         <ul className="space-y-4">
-          {sortedEntries.map((entry, index) => (
+          {filteredEntries.map((entry, idx) => (
             <li
-              key={index}
-              className={`p-4 rounded-lg shadow-md ${
-                entry.type === "expense" ? "bg-red-200" : "bg-green-200"
-              }`}
+              key={idx}
+              className={`p-4 rounded-lg shadow-md ${entry.type === "expense" ? "bg-red-200" : "bg-green-200"}`}
             >
               <div className="flex justify-between items-center">
                 <div>
-                  <span className="font-semibold text-lg text-gray-800">
-                    {entry.type.toUpperCase()}
-                  </span>
-                  <div className="text-gray-600">
-                    ${entry.amount} - {formatDate(entry.date)}
-                  </div>
+                  <span className="font-semibold text-lg">{entry.type.toUpperCase()}</span>
+                  <div className="text-gray-600">${entry.amount} - {formatDate(entry.date)}</div>
                 </div>
-                <div>
-                  <span className="text-sm text-gray-500">{entry.category}</span>
-                </div>
+                <span className="text-sm text-gray-500">{entry.category}</span>
               </div>
             </li>
           ))}
